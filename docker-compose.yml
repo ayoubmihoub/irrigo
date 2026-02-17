@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Base de données pour le Sprint 1 (User Management)
   mysql-db:
     image: mysql:8.0
     container_name: mysql-db
@@ -13,68 +12,69 @@ services:
     networks:
       - irrigo-network
 
-  # Étape 1 : Config Server (Port 8888)
   config-server:
     build: ./config-server
     container_name: config-server
     ports:
       - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=native,docker
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/configurations
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
     networks:
       - irrigo-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      retries: 5
 
-  # Étape 2 : Eureka Server (Port 8761)
   eureka-server:
     build: ./eureka-server
     container_name: eureka-server
+    restart: on-failure # Important pour la boucle
     ports:
       - "8761:8761"
     environment:
+      # ON FORCE L'ADRESSE ICI
+      - CONFIG_HOST=config-server
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
     depends_on:
-      config-server:
-        condition: service_healthy
+      - config-server
     networks:
       - irrigo-network
-  # Étape 3 : User Management Service (Port 8081)
+
   user-management-service:
     build: ./user-management-service
     container_name: user-management-service
+    restart: on-failure
     ports:
       - "8081:8081"
     environment:
+      - CONFIG_HOST=config-server
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/irrigation_db?createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
-      - EUREKA_HOST=eureka-server
     depends_on:
-      mysql-db:
-        condition: service_started
-      eureka-server:
-        condition: service_started
+      - mysql-db
+      - config-server
     networks:
       - irrigo-network
 
-  # Étape 3 : API Gateway (Port 8080)
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
+    restart: on-failure
     ports:
       - "8080:8080"
     environment:
+      - CONFIG_HOST=config-server
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
-      - EUREKA_HOST=eureka-server
     depends_on:
-      eureka-server:
-        condition: service_started
+      - config-server
     networks:
       - irrigo-network
 
 networks:
   irrigo-network:
     driver: bridge
-
