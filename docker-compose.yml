@@ -74,7 +74,27 @@ services:
       - config-server
     networks:
       - irrigo-network
+  # Étape 4 : Task Management Service (Port 8082)
+  task-management-service:
+    build: ./task-management-service
+    container_name: task-management-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/irrigation_db?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      mysql-db:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - irrigo-network
 
 networks:
   irrigo-network:
     driver: bridge
+
