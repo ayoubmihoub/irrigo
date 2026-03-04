@@ -1,0 +1,10 @@
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\clients\TaskServiceClient.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\config\SecurityConfig.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\controllers\WeatherController.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\dto\IntelligenceResponse.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\dto\WeatherInfo.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\security\AuthTokenFilter.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\security\JwtUtils.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\services\OpenAIService.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\services\WeatherIntelligenceService.java
+C:\Users\Lenovo\Desktop\irrigo-platform-main\weather-intelligence-service\src\main\java\com\irrigo\weatherintelligenceservice\WeatherIntelligenceServiceApplication.java
