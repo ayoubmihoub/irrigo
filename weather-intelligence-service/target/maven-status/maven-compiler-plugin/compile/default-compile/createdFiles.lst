@@ -1,11 +1,6 @@
 com\irrigo\weatherintelligenceservice\config\SecurityConfig.class
-com\irrigo\weatherintelligenceservice\dto\WeatherInfo.class
-com\irrigo\weatherintelligenceservice\dto\IntelligenceResponse$CropAdvice.class
-com\irrigo\weatherintelligenceservice\services\OpenAIService.class
 com\irrigo\weatherintelligenceservice\WeatherIntelligenceServiceApplication.class
-com\irrigo\weatherintelligenceservice\dto\IntelligenceResponse.class
 com\irrigo\weatherintelligenceservice\security\AuthTokenFilter.class
-com\irrigo\weatherintelligenceservice\services\WeatherIntelligenceService.class
 com\irrigo\weatherintelligenceservice\security\JwtUtils.class
 com\irrigo\weatherintelligenceservice\clients\TaskServiceClient.class
 com\irrigo\weatherintelligenceservice\controllers\WeatherController.class
