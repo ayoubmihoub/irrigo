@@ -23,7 +23,10 @@ public class IrrigationTask {
     private LocalDateTime startTime;
     private String crop;
 
+    // AJOUT : Stocker l'email du propriétaire de la tâche
+    private String userEmail;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private ETaskStatus status = ETaskStatus.planned; // "planned" par défaut
+    private ETaskStatus status = ETaskStatus.planned;
 }
