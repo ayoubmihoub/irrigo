@@ -33,4 +33,30 @@ public class UserService {
 
         return userRepository.save(user);
     }
+    // Dans UserService.java
+    public User updateUser(Long id, User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        user.setName(userDetails.getName());
+        user.setEmail(userDetails.getEmail());
+
+        // Si un nouveau mot de passe est fourni, on l'encode
+        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        }
+
+        return userRepository.save(user);
+    }
+
+    public void deleteUserById(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("Impossible de supprimer : Utilisateur non trouvé");
+        }
+        userRepository.deleteById(id);
+    }
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Erreur : Utilisateur non trouvé"));
+    }
 }

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,21 +35,16 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé");
-        }
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé");
 
         if (encoder.matches(loginRequest.getPassword(), user.getPassword())) {
             String role = user.getRole().getName().toString();
             String jwt = jwtUtils.generateJwtToken(user.getEmail(), role);
-
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
             response.put("role", role);
             response.put("name", user.getName());
             response.put("email", user.getEmail());
-
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Erreur : Mot de passe incorrect");
@@ -67,13 +63,40 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserProfile(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateAccount(@PathVariable Long id, @RequestBody User userDetails) {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User userToUpdate = userRepository.findById(id).orElse(null);
+
+        if (userToUpdate == null) return ResponseEntity.notFound().build();
+
+        if (!userToUpdate.getEmail().equals(currentUserEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Erreur : Vous ne pouvez modifier que votre propre compte.");
+        }
+
+        return ResponseEntity.ok(userService.updateUser(id, userDetails));
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        return userRepository.findById(id)
-                .map(user -> {
-                    userRepository.delete(user);
-                    return ResponseEntity.ok().body("Utilisateur supprimé avec succès !");
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé"));
+    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User userToDelete = userRepository.findById(id).orElse(null);
+
+        if (userToDelete == null) return ResponseEntity.notFound().build();
+
+        if (!userToDelete.getEmail().equals(currentUserEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Erreur : Vous ne pouvez supprimer que votre propre compte.");
+        }
+
+        userService.deleteUserById(id);
+        return ResponseEntity.ok("Compte supprimé avec succès.");
     }
 }
