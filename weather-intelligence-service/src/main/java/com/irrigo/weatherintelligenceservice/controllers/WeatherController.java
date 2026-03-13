@@ -20,4 +20,8 @@ public class WeatherController {
     public ResponseEntity<List<TaskIntelligenceResponse>> getAutomatedInsights() {
         return ResponseEntity.ok(intelligenceService.getAutomatedInsights());
     }
+    @GetMapping("/task/{id}")
+    public ResponseEntity<TaskIntelligenceResponse> getSingleTaskInsight(@PathVariable Long id) {
+        return ResponseEntity.ok(intelligenceService.getSingleTaskInsight(id));
+    }
 }

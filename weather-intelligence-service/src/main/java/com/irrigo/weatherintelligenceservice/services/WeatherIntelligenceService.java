@@ -18,37 +18,55 @@ public class WeatherIntelligenceService {
     private OpenWeatherService openWeatherService;
 
     public List<TaskIntelligenceResponse> getAutomatedInsights() {
-        // 1. Récupérer toutes les tâches réelles
+        // 1. Récupérer TOUTES les tâches (pas seulement les cultures uniques)
         List<TaskDTO> tasks = taskServiceClient.getAllTasks();
         List<TaskIntelligenceResponse> responses = new ArrayList<>();
 
-        // Dans la méthode getAutomatedInsights() de WeatherIntelligenceService.java
-
         for (TaskDTO task : tasks) {
             try {
-                // 1. Récupération de la météo basée sur la localisation de la tâche
+                // 2. Météo pour chaque emplacement de tâche
                 WeatherInfo weather = openWeatherService.getWeather(task.getLocation());
 
-                // 2. Génération du conseil IA
+                // 3. Conseil IA
                 String advice = geminiService.getAIAdvice(task.getCrop(), weather);
 
-                // 3. Création de la réponse enrichie avec TOUS les champs
+                // 4. Ajouter à la liste finale
                 responses.add(new TaskIntelligenceResponse(
-                        task.getId(),           // taskId
-                        task.getName(),         // taskName
-                        task.getCrop(),         // crop
-                        task.getLocation(),     // location
-                        task.getDuration(),     // duration (Nouveau)
-                        task.getWaterAmount(),  // waterAmount (Nouveau)
-                        task.getStartTime(),    // startTime (Nouveau)
-                        weather,                // weather object
-                        advice                  // aiAdvice
+                        task.getId(),
+                        task.getName(),
+                        task.getCrop(),
+                        task.getLocation(),
+                        task.getDuration(),
+                        task.getWaterAmount(),
+                        task.getStartTime(),
+                        weather,
+                        advice
                 ));
-
             } catch (Exception e) {
-                System.err.println("Erreur de traitement pour la tâche " + task.getName() + " : " + e.getMessage());
+                e.printStackTrace();
             }
         }
         return responses;
+    }
+    public TaskIntelligenceResponse getSingleTaskInsight(Long taskId) {
+        // 1. Récupérer la tâche spécifique via Feign
+        TaskDTO task = taskServiceClient.getTaskById(taskId);
+
+        // 2. Récupérer la météo et le conseil (comme dans la boucle)
+        WeatherInfo weather = openWeatherService.getWeather(task.getLocation());
+        String advice = geminiService.getAIAdvice(task.getCrop(), weather);
+
+        // 3. Retourner l'objet complet
+        return new TaskIntelligenceResponse(
+                task.getId(),
+                task.getName(),
+                task.getCrop(),
+                task.getLocation(),
+                task.getDuration(),
+                task.getWaterAmount(),
+                task.getStartTime(),
+                weather,
+                advice
+        );
     }
 }
