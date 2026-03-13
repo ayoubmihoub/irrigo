@@ -35,16 +35,22 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
-        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé");
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé");
+        }
 
         if (encoder.matches(loginRequest.getPassword(), user.getPassword())) {
             String role = user.getRole().getName().toString();
             String jwt = jwtUtils.generateJwtToken(user.getEmail(), role);
+
             Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId()); // AJOUT DE L'ID ICI
             response.put("token", jwt);
             response.put("role", role);
             response.put("name", user.getName());
             response.put("email", user.getEmail());
+
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Erreur : Mot de passe incorrect");

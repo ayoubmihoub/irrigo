@@ -16,13 +16,24 @@ public class OpenWeatherService {
     private final String apiUrl = "https://api.openweathermap.org/data/2.5/weather";
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public WeatherInfo getWeather(String city) {
-        String url = String.format("%s?q=%s&appid=%s&units=metric&lang=fr", apiUrl, city, apiKey);
+    public WeatherInfo getWeather(String location) {
+        String url;
+        // Vérifie si la location contient une virgule (format lat, lon)
+        if (location.contains(",")) {
+            String[] coords = location.split(",");
+            String lat = coords[0].trim();
+            String lon = coords[1].trim();
+            url = String.format("%s?lat=%s&lon=%s&appid=%s&units=metric&lang=fr", apiUrl, lat, lon, apiKey);
+        } else {
+            url = String.format("%s?q=%s&appid=%s&units=metric&lang=fr", apiUrl, location, apiKey);
+        }
 
         try {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             WeatherInfo info = new WeatherInfo();
-            info.setCityName(city);
+
+            // OpenWeather retourne le nom du lieu trouvé dans le champ "name"
+            info.setCityName(response.get("name").toString());
 
             Map<String, Object> main = (Map<String, Object>) response.get("main");
             info.setTemperature(Double.parseDouble(main.get("temp").toString()));
@@ -34,8 +45,7 @@ public class OpenWeatherService {
             }
 
             Map<String, Object> clouds = (Map<String, Object>) response.get("clouds");
-            double cloudiness = Double.parseDouble(clouds.get("all").toString()) / 100.0;
-            info.setRainProbability(cloudiness);
+            info.setRainProbability(Double.parseDouble(clouds.get("all").toString()) / 100.0);
 
             return info;
         } catch (Exception e) {
