@@ -1,4 +1,4 @@
-package com.irrigo.weatherintelligenceservice.dto;
+package com.irrigo.analyticsservice.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -7,12 +7,9 @@ import java.time.LocalDateTime;
 public class TaskDTO {
     private Long id;
     private String name;
-    private String location;
-    private double surface;
-    private int duration;
+    private String crop;
     private double waterAmount;
     private double debit;
+    private double surface;
     private LocalDateTime startTime;
-    private String crop;
-    private String status;
 }

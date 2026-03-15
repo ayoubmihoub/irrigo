@@ -8,6 +8,7 @@ public class TaskDTO {
     private Long id;
     private String name;
     private String location;
+    private double surface;
     private int duration;
     private double waterAmount;
     private double debit;

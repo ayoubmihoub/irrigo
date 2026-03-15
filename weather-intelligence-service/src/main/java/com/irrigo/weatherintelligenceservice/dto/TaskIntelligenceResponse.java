@@ -13,6 +13,7 @@ public class TaskIntelligenceResponse {
     private String taskName;
     private String crop;
     private String location;
+    private double surface;
     private int duration;
     private double waterAmount;
     private LocalDateTime startTime;
