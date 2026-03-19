@@ -8,6 +8,7 @@ import com.irrigo.usermanagementservice.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -104,5 +105,36 @@ public class UserController {
 
         userService.deleteUserById(id);
         return ResponseEntity.ok("Compte supprimé avec succès.");
+    }
+    @Autowired
+    private com.irrigo.usermanagementservice.clients.TaskServiceClient taskServiceClient;
+
+    // 1. Afficher toutes les tasks (via Feign)
+    @GetMapping("/admin/tasks/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllTasksForAdmin() {
+        try {
+            return ResponseEntity.ok(taskServiceClient.getAllTasksFromService());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erreur lors de la récupération des tâches : " + e.getMessage());
+        }
+    }
+
+    // 2. Supprimer n'importe quel utilisateur
+    @DeleteMapping("/admin/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteAnyUser(@PathVariable Long id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok(Map.of("message", "Utilisateur supprimé avec succès"));
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+    // 3. Afficher tous les utilisateurs (Réservé à l'Admin)
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<User>> getAllUsersForAdmin() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 }

@@ -6,6 +6,7 @@ import com.irrigo.weatherintelligenceservice.clients.TaskServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class WeatherIntelligenceService {
@@ -18,46 +19,40 @@ public class WeatherIntelligenceService {
     private OpenWeatherService openWeatherService;
 
     public List<TaskIntelligenceResponse> getAutomatedInsights() {
-        // 1. Récupérer TOUTES les tâches (pas seulement les cultures uniques)
+        // 1. Récupérer l'intégralité des tâches
         List<TaskDTO> tasks = taskServiceClient.getAllTasks();
-        List<TaskIntelligenceResponse> responses = new ArrayList<>();
+        if (tasks == null || tasks.isEmpty()) return Collections.emptyList();
 
-        for (TaskDTO task : tasks) {
-            try {
-                // 2. Météo pour chaque emplacement de tâche
-                WeatherInfo weather = openWeatherService.getWeather(task.getLocation());
+        // 2. Météo de référence (utilisée pour le contexte global du conseil IA)
+        WeatherInfo weather = openWeatherService.getWeather(tasks.get(0).getLocation());
 
-                // 3. Conseil IA
-                String advice = geminiService.getAIAdvice(task.getCrop(), weather);
+        // 3. Appel groupé à Gemini (Batching) pour obtenir tous les conseils d'un coup
+        Map<Long, String> bulkAdvices = geminiService.getBulkAIAdvice(tasks, weather);
 
-                // 4. Ajouter à la liste finale
-                responses.add(new TaskIntelligenceResponse(
-                        task.getId(),
-                        task.getName(),
-                        task.getCrop(),
-                        task.getLocation(),
-                        task.getSurface(),
-                        task.getDuration(),
-                        task.getWaterAmount(),
-                        task.getStartTime(),
-                        weather,
-                        advice
-                ));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return responses;
+        // 4. Construction de la liste des réponses enrichies
+        return tasks.stream().map(task -> {
+            String advice = bulkAdvices.getOrDefault(task.getId(), "advice indisponible pour le moment");
+
+            return new TaskIntelligenceResponse(
+                    task.getId(),
+                    task.getName(),
+                    task.getCrop(),
+                    task.getLocation(),
+                    task.getSurface(), // Champ ajouté précédemment
+                    task.getDuration(),
+                    task.getWaterAmount(),
+                    task.getStartTime(),
+                    weather,
+                    advice
+            );
+        }).collect(Collectors.toList());
     }
-    public TaskIntelligenceResponse getSingleTaskInsight(Long taskId) {
-        // 1. Récupérer la tâche spécifique via Feign
-        TaskDTO task = taskServiceClient.getTaskById(taskId);
 
-        // 2. Récupérer la météo et le conseil (comme dans la boucle)
+    public TaskIntelligenceResponse getSingleTaskInsight(Long taskId) {
+        TaskDTO task = taskServiceClient.getTaskById(taskId);
         WeatherInfo weather = openWeatherService.getWeather(task.getLocation());
         String advice = geminiService.getAIAdvice(task.getCrop(), weather);
 
-        // 3. Retourner l'objet complet
         return new TaskIntelligenceResponse(
                 task.getId(),
                 task.getName(),
