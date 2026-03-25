@@ -2,6 +2,8 @@ package com.irrigo.taskmanagementservice.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,7 +16,6 @@ public class IrrigationTask {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String name;
     private String location;
     private double surface;
@@ -23,11 +24,13 @@ public class IrrigationTask {
     private double debit;
     private LocalDateTime startTime;
     private String crop;
-
-    // AJOUT : Stocker l'email du propriétaire de la tâche
-    private String userEmail;
+    private String userEmail; // AJOUT : Identifiant du propriétaire
 
     @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private ETaskStatus status = ETaskStatus.planned;
+    private ETaskStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private ESoilType soilProfile;
+
+    private LocalDate plantingDate;
 }

@@ -1,6 +1,8 @@
 package com.irrigo.taskmanagementservice.dto;
 
 import lombok.Data;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,5 +16,8 @@ public class TaskDTO {
     private double debit;
     private LocalDateTime startTime;
     private String crop;
+    private String userEmail;
     private String status;
+    private String soilProfile;
+    private LocalDate plantingDate;
 }

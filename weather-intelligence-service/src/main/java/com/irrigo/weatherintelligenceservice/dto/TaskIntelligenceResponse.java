@@ -17,6 +17,12 @@ public class TaskIntelligenceResponse {
     private int duration;
     private double waterAmount;
     private LocalDateTime startTime;
+
+    // Champs ajoutés pour la dimension professionnelle et multi-utilisateur
+    private String userEmail;     // Propriétaire de la tâche
+    private String soilProfile;   // Type de sol (SANDY, CLAYEY, etc.)
+    private long plantAge;        // Âge de la plante en jours au moment de l'analyse
+
     private WeatherInfo weather;
     private String aiAdvice;
 }
