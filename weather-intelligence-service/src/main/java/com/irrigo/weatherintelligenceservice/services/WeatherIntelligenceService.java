@@ -21,83 +21,56 @@ public class WeatherIntelligenceService {
     @Autowired
     private OpenWeatherService openWeatherService;
 
-    /**
-     * Analyse groupée pour le tableau de bord global.
-     */
     public List<TaskIntelligenceResponse> getAutomatedInsights() {
         List<TaskDTO> tasks = taskServiceClient.getAllTasks();
         if (tasks == null || tasks.isEmpty()) return Collections.emptyList();
 
-        // On récupère la météo (ici simplifiée sur la première localisation pour le batch)
         WeatherInfo weather = openWeatherService.getWeather(tasks.get(0).getLocation());
 
-        // Calcul des âges pour chaque tâche avant l'envoi à l'IA
-        Map<Long, Long> plantAges = tasks.stream()
-                .collect(Collectors.toMap(
-                        TaskDTO::getId,
-                        t -> ChronoUnit.DAYS.between(t.getPlantingDate(), LocalDate.now())
-                ));
+        // Calcul des âges et récupération des historiques de consommation
+        Map<Long, Long> plantAges = new HashMap<>();
+        Map<Long, Double> waterHistories = new HashMap<>();
 
-        // Appel à Gemini avec le nouveau contexte agronomique
-        Map<Long, String> bulkAdvices = geminiService.getBulkAIAdvice(tasks, weather, plantAges);
+        for (TaskDTO t : tasks) {
+            plantAges.put(t.getId(), ChronoUnit.DAYS.between(t.getPlantingDate(), LocalDate.now()));
+
+            // On récupère le cumul d'eau versée sur cette parcelle pour cette culture
+            Double history = taskServiceClient.getWaterHistory(t.getLocation(), t.getCrop(), 7);
+            waterHistories.put(t.getId(), (history != null) ? history : 0.0);
+        }
+
+        // Appel à Gemini avec l'historique pour le calcul de l'humidité résiduelle
+        Map<Long, String> bulkAdvices = geminiService.getBulkAIAdvice(tasks, weather, plantAges, waterHistories);
 
         return tasks.stream().map(task -> {
             String advice = bulkAdvices.getOrDefault(task.getId(), "Conseil indisponible");
-
             return new TaskIntelligenceResponse(
-                    task.getId(),
-                    task.getName(),
-                    task.getCrop(),
-                    task.getLocation(),
-                    task.getSurface(),
-                    task.getDuration(),
-                    task.getWaterAmount(),
-                    task.getStartTime(),
-                    task.getUserEmail(),    // Propriétaire
-                    task.getSoilProfile(), // Profil du sol
-                    plantAges.get(task.getId()), // Âge calculé
-                    weather,
-                    advice
+                    task.getId(), task.getName(), task.getCrop(), task.getLocation(),
+                    task.getSurface(), task.getDuration(), task.getWaterAmount(),
+                    task.getStartTime(), task.getUserEmail(), task.getSoilProfile(),
+                    plantAges.get(task.getId()), weather, advice
             );
         }).collect(Collectors.toList());
     }
 
-    /**
-     * Analyse détaillée pour une tâche spécifique.
-     */
     public TaskIntelligenceResponse getSingleTaskInsight(Long taskId) {
-        // 1. Récupération des données complètes (incluant plantingDate, soilProfile, userEmail)
         TaskDTO task = taskServiceClient.getTaskById(taskId);
-
-        // 2. Récupération de la météo précise (Temp, Humidité, Probabilité de pluie)
         WeatherInfo weather = openWeatherService.getWeather(task.getLocation());
-
-        // 3. Calcul de l'âge de la plante
         long plantAge = ChronoUnit.DAYS.between(task.getPlantingDate(), LocalDate.now());
 
-        // 4. Génération du conseil professionnel via l'IA
-        // On passe désormais : Culture, Sol, Âge et l'objet Weather complet
+        // Récupération de l'historique pour la tâche unique
+        Double history = taskServiceClient.getWaterHistory(task.getLocation(), task.getCrop(), 7);
+        double totalHistory = (history != null) ? history : 0.0;
+
         String advice = geminiService.generateExpertAdvice(
-                task.getCrop(),
-                task.getSoilProfile(),
-                plantAge,
-                weather
+                task.getCrop(), task.getSoilProfile(), plantAge, weather, totalHistory
         );
 
         return new TaskIntelligenceResponse(
-                task.getId(),
-                task.getName(),
-                task.getCrop(),
-                task.getLocation(),
-                task.getSurface(),
-                task.getDuration(),
-                task.getWaterAmount(),
-                task.getStartTime(),
-                task.getUserEmail(),
-                task.getSoilProfile(),
-                plantAge,
-                weather,
-                advice
+                task.getId(), task.getName(), task.getCrop(), task.getLocation(),
+                task.getSurface(), task.getDuration(), task.getWaterAmount(),
+                task.getStartTime(), task.getUserEmail(), task.getSoilProfile(),
+                plantAge, weather, advice
         );
     }
 }

@@ -33,6 +33,16 @@ public class TaskService {
     }
 
     /**
+     * Calcule le volume d'eau total versé sur X jours.
+     * Utilisé par le Weather-Intelligence-Service pour l'IA.
+     */
+    public Double getWaterHistorySum(String location, String crop, int days) {
+        LocalDateTime since = LocalDateTime.now().minusDays(days);
+        Double sum = taskRepository.sumWaterAmount(location, crop, since);
+        return (sum != null) ? sum : 0.0;
+    }
+
+    /**
      * Récupère les cultures uniques (filtrées par utilisateur ou globales pour l'admin).
      */
     public List<String> getUniqueCrops() {
@@ -44,7 +54,6 @@ public class TaskService {
 
     /**
      * Récupère toutes les tâches.
-     * Si l'utilisateur est ADMIN, il voit TOUT. Sinon, seulement les siennes.
      */
     public List<IrrigationTask> getAllTasks() {
         if (isAdmin()) {
@@ -60,7 +69,6 @@ public class TaskService {
         IrrigationTask task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tâche d'irrigation non trouvée avec l'ID : " + id));
 
-        // Sécurité : l'admin peut tout voir, l'utilisateur seulement ses tâches
         if (!isAdmin() && !task.getUserEmail().equals(getCurrentUserEmail())) {
             throw new RuntimeException("Accès refusé : vous n'êtes pas propriétaire de cette tâche");
         }
@@ -68,10 +76,10 @@ public class TaskService {
     }
 
     /**
-     * Enregistre une nouvelle tâche en y attachant l'email du créateur.
+     * Enregistre une nouvelle tâche.
      */
     public IrrigationTask saveTask(IrrigationTask task) {
-        task.setUserEmail(getCurrentUserEmail()); // Attachement automatique de l'utilisateur
+        task.setUserEmail(getCurrentUserEmail());
         if (task.getStatus() == null) {
             task.setStatus(ETaskStatus.planned);
         }
@@ -81,22 +89,24 @@ public class TaskService {
     /**
      * Met à jour une tâche existante.
      */
-    public IrrigationTask updateTask(Long id, IrrigationTask taskDetails) {
-        IrrigationTask task = getTaskById(id); // Vérifie déjà les droits d'accès
-        task.setName(taskDetails.getName());
-        task.setLocation(taskDetails.getLocation());
-        task.setDuration(taskDetails.getDuration());
-        task.setWaterAmount(taskDetails.getWaterAmount());
-        task.setDebit(taskDetails.getDebit());
-        task.setSurface(taskDetails.getSurface()); // Champ pour les analytics
-        task.setStartTime(taskDetails.getStartTime());
-        task.setCrop(taskDetails.getCrop());
-        task.setStatus(taskDetails.getStatus());
+    public IrrigationTask updateTask(Long id, IrrigationTask details) {
+        IrrigationTask task = getTaskById(id);
+        task.setName(details.getName());
+        task.setLocation(details.getLocation());
+        task.setDuration(details.getDuration());
+        task.setWaterAmount(details.getWaterAmount());
+        task.setDebit(details.getDebit());
+        task.setSurface(details.getSurface());
+        task.setStartTime(details.getStartTime());
+        task.setCrop(details.getCrop());
+        task.setSoilProfile(details.getSoilProfile());
+        task.setPlantingDate(details.getPlantingDate());
+        task.setStatus(details.getStatus());
         return taskRepository.save(task);
     }
 
     /**
-     * Supprime une tâche.
+     * MÉTHODE AJOUTÉE : Supprime une tâche.
      */
     public void deleteTask(Long id) {
         IrrigationTask task = getTaskById(id); // Vérifie déjà les droits d'accès
@@ -115,7 +125,6 @@ public class TaskService {
         for (IrrigationTask task : toStart) {
             task.setStatus(ETaskStatus.ongoing);
             taskRepository.save(task);
-            System.out.println("[AUTO] Tâche démarrée : " + task.getName());
         }
 
         // 2. Passage de 'ongoing' à 'terminated'
@@ -125,7 +134,6 @@ public class TaskService {
             if (now.isAfter(endTime)) {
                 task.setStatus(ETaskStatus.terminated);
                 taskRepository.save(task);
-                System.out.println("[AUTO] Tâche terminée : " + task.getName());
             }
         }
     }

@@ -23,10 +23,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. ON AUTORISE L'ACCÈS PUBLIC À CET ENDPOINT PRÉCIS (POUR LE SERVICE MÉTÉO)
+                        // 1. ENDPOINTS PUBLICS (ACCESSIBLES PAR LES AUTRES MICROSERVICES)
                         .requestMatchers("/api/tasks/crops/unique").permitAll()
+                        .requestMatchers("/api/tasks/history/**").permitAll() // AUTORISATION DE L'HISTORIQUE
 
-                        // 2. TOUT LE RESTE RESTE SÉCURISÉ
+                        // 2. TOUT LE RESTE RESTE SÉCURISÉ (JWT REQUIS)
                         .requestMatchers("/api/tasks/**").authenticated()
                         .anyRequest().authenticated()
                 );

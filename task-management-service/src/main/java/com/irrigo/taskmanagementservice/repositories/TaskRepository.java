@@ -10,18 +10,24 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<IrrigationTask, Long> {
 
-    // 1. Pour l'utilisateur standard : voir ses tâches
     List<IrrigationTask> findByUserEmail(String email);
 
-    // 2. Pour l'Admin : voir toutes les cultures uniques de la plateforme
     @Query("SELECT DISTINCT t.crop FROM IrrigationTask t")
     List<String> findDistinctCrops();
 
-    // 3. Pour l'utilisateur standard : voir ses propres cultures uniques
     @Query("SELECT DISTINCT t.crop FROM IrrigationTask t WHERE t.userEmail = :email")
     List<String> findDistinctCropsByUser(@Param("email") String email);
 
-    // 4. Pour la mise à jour automatique des statuts (TaskService @Scheduled)
+    // RÉFÉRENCE POUR LE BILAN HYDRIQUE : Somme de l'eau versée par parcelle et culture
+    @Query("SELECT SUM(t.waterAmount) FROM IrrigationTask t " +
+            "WHERE t.location = :location " +
+            "AND t.crop = :crop " +
+            "AND t.startTime >= :since " +
+            "AND t.status = 'terminated'")
+    Double sumWaterAmount(@Param("location") String location,
+                          @Param("crop") String crop,
+                          @Param("since") LocalDateTime since);
+
     List<IrrigationTask> findByStatusAndStartTimeBefore(ETaskStatus status, LocalDateTime time);
     List<IrrigationTask> findByStatus(ETaskStatus status);
 }

@@ -15,7 +15,15 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    // --- NOUVEL ENDPOINT POUR LE SERVICE MÉTÉO ---
+    // ENDPOINT CRUCIAL POUR L'IA : Somme de l'historique
+    @GetMapping("/history/sum")
+    public ResponseEntity<Double> getWaterHistorySum(
+            @RequestParam String location,
+            @RequestParam String crop,
+            @RequestParam int days) {
+        return ResponseEntity.ok(taskService.getWaterHistorySum(location, crop, days));
+    }
+
     @GetMapping("/crops/unique")
     public ResponseEntity<List<String>> getUniqueCrops() {
         return ResponseEntity.ok(taskService.getUniqueCrops());
@@ -28,41 +36,22 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getTaskById(@PathVariable Long id) {
-        try {
-            IrrigationTask task = taskService.getTaskById(id);
-            return ResponseEntity.ok(task);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Tâche non trouvée");
-        }
+        return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createTask(@RequestBody IrrigationTask task) {
-        try {
-            IrrigationTask savedTask = taskService.saveTask(task);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedTask);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erreur : Impossible de créer la tâche");
-        }
+    public ResponseEntity<IrrigationTask> createTask(@RequestBody IrrigationTask task) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(taskService.saveTask(task));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody IrrigationTask taskDetails) {
-        try {
-            IrrigationTask updatedTask = taskService.updateTask(id, taskDetails);
-            return ResponseEntity.ok(updatedTask);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Tâche non trouvée");
-        }
+    public ResponseEntity<IrrigationTask> updateTask(@PathVariable Long id, @RequestBody IrrigationTask details) {
+        return ResponseEntity.ok(taskService.updateTask(id, details));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
-        try {
-            taskService.deleteTask(id);
-            return ResponseEntity.ok().body("Tâche supprimée avec succès !");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Tâche non trouvée");
-        }
+    public ResponseEntity<String> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.ok("Supprimé");
     }
 }
