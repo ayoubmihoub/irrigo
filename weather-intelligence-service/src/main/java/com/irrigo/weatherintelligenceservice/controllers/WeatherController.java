@@ -1,6 +1,5 @@
 package com.irrigo.weatherintelligenceservice.controllers;
 
-import com.irrigo.weatherintelligenceservice.dto.IntelligenceResponse;
 import com.irrigo.weatherintelligenceservice.dto.TaskIntelligenceResponse;
 import com.irrigo.weatherintelligenceservice.services.WeatherIntelligenceService;
 import org.springframework.beans.factory.annotation.Autowired;

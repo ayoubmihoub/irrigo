@@ -20,20 +20,19 @@ public class GeminiService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Map<Long, String> getBulkAIAdvice(List<TaskDTO> tasks, WeatherInfo weather, Map<Long, Long> plantAges, Map<Long, Double> waterHistories) {
+    public Map<Long, String> getBulkAIAdvice(List<TaskDTO> tasks, Map<Long, WeatherInfo> taskWeathers, Map<Long, Long> plantAges, Map<Long, Double> waterHistories) {
         StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append("Tu es un expert agronome. Analyse le bilan hydrique (eau versée vs météo) pour chaque cas. ")
-                .append("Météo : ").append(weather.getTemperature()).append("°C, ")
-                .append("Humidité: ").append(weather.getHumidity()).append("%, ")
-                .append("Pluie: ").append(weather.getRainProbability()).append("%. ")
-                .append("Réponds UNIQUEMENT en JSON strict : {\"ID\": \"conseil\"}.\n");
+        promptBuilder.append("Tu es un expert agronome. Analyse chaque cas et réponds UNIQUEMENT en JSON strict : {\"ID\": \"conseil\"}.\n");
 
         for (TaskDTO task : tasks) {
+            WeatherInfo w = taskWeathers.get(task.getId());
             double history = waterHistories.getOrDefault(task.getId(), 0.0);
+
             promptBuilder.append("- ID: ").append(task.getId())
                     .append(", Culture: ").append(task.getCrop())
                     .append(", Sol: ").append(task.getSoilProfile())
-                    .append(", Âge: ").append(plantAges.getOrDefault(task.getId(), 0L)).append(" jours")
+                    .append(", Age: ").append(plantAges.getOrDefault(task.getId(), 0L)).append(" jours")
+                    .append(", Météo locale: ").append(w.getTemperature()).append("°C, Humidité: ").append(w.getHumidity()).append("%")
                     .append(", Eau déjà versée (7j): ").append(history).append(" m3\n");
         }
 

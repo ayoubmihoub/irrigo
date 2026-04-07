@@ -15,12 +15,17 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    // ENDPOINT CRUCIAL POUR L'IA : Somme de l'historique
+    /**
+     * Endpoint pour le Frontend : récupère les messages d'alerte actifs (valables 15 min).
+     * URL : GET /api/tasks/notifications/scan?email=ayoubhajji.dev@irrigo.tn
+     */
+    @GetMapping("/notifications/scan")
+    public ResponseEntity<List<String>> scanNotifications(@RequestParam String email) {
+        return ResponseEntity.ok(taskService.scanAndGetNotifications(email));
+    }
+
     @GetMapping("/history/sum")
-    public ResponseEntity<Double> getWaterHistorySum(
-            @RequestParam String location,
-            @RequestParam String crop,
-            @RequestParam int days) {
+    public ResponseEntity<Double> getWaterHistorySum(@RequestParam String location, @RequestParam String crop, @RequestParam int days) {
         return ResponseEntity.ok(taskService.getWaterHistorySum(location, crop, days));
     }
 

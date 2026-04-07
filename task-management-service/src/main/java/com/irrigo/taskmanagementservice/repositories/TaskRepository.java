@@ -18,7 +18,6 @@ public interface TaskRepository extends JpaRepository<IrrigationTask, Long> {
     @Query("SELECT DISTINCT t.crop FROM IrrigationTask t WHERE t.userEmail = :email")
     List<String> findDistinctCropsByUser(@Param("email") String email);
 
-    // RÉFÉRENCE POUR LE BILAN HYDRIQUE : Somme de l'eau versée par parcelle et culture
     @Query("SELECT SUM(t.waterAmount) FROM IrrigationTask t " +
             "WHERE t.location = :location " +
             "AND t.crop = :crop " +
@@ -28,6 +27,14 @@ public interface TaskRepository extends JpaRepository<IrrigationTask, Long> {
                           @Param("crop") String crop,
                           @Param("since") LocalDateTime since);
 
+    // --- MÉTHODES POUR LES NOTIFICATIONS ---
+
+    // Pour l'alerte "Dans 15 minutes" : tâches dont le startTime est compris entre T+14 et T+16
+    List<IrrigationTask> findByStatusAndStartTimeBetween(ETaskStatus status, LocalDateTime start, LocalDateTime end);
+
+    // Pour l'alerte "Tâche commencée" : tâches planifiées dont l'heure de début est passée
     List<IrrigationTask> findByStatusAndStartTimeBefore(ETaskStatus status, LocalDateTime time);
+
+    // Pour l'alerte "Tâche terminée" : toutes les tâches en cours (ongoing)
     List<IrrigationTask> findByStatus(ETaskStatus status);
 }

@@ -5,11 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableScheduling
+@EnableScheduling // Indispensable pour activer les tâches planifiées
 public class TaskManagementServiceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(TaskManagementServiceApplication.class, args);
     }
-
 }
