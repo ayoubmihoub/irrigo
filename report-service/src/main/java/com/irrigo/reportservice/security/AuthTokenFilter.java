@@ -1,5 +1,4 @@
-package com.irrigo.weatherintelligenceservice.security;
-
+package com.irrigo.reportservice.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,10 +17,10 @@ import java.util.ArrayList;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
 
-    private final JwtUtils jwtUtils; // On passe en final
+    private final JwtUtils jwtUtils;
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
-    // Injection par constructeur au lieu de @Autowired sur le champ
+    // Le constructeur doit accepter JwtUtils en paramètre
     public AuthTokenFilter(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
     }
@@ -32,10 +31,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String email = jwtUtils.getEmailFromToken(jwt);
+                String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        email, null, new ArrayList<>());
+                        username, null, new ArrayList<>());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

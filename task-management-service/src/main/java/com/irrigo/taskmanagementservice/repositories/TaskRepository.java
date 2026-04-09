@@ -10,7 +10,11 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<IrrigationTask, Long> {
 
+    // Récupérer toutes les tâches d'un utilisateur
     List<IrrigationTask> findByUserEmail(String email);
+
+    // Récupérer les tâches d'un utilisateur après une date précise (pour le rapport 30 jours)
+    List<IrrigationTask> findByUserEmailAndStartTimeAfter(String email, LocalDateTime date);
 
     @Query("SELECT DISTINCT t.crop FROM IrrigationTask t")
     List<String> findDistinctCrops();
@@ -28,13 +32,7 @@ public interface TaskRepository extends JpaRepository<IrrigationTask, Long> {
                           @Param("since") LocalDateTime since);
 
     // --- MÉTHODES POUR LES NOTIFICATIONS ---
-
-    // Pour l'alerte "Dans 15 minutes" : tâches dont le startTime est compris entre T+14 et T+16
     List<IrrigationTask> findByStatusAndStartTimeBetween(ETaskStatus status, LocalDateTime start, LocalDateTime end);
-
-    // Pour l'alerte "Tâche commencée" : tâches planifiées dont l'heure de début est passée
     List<IrrigationTask> findByStatusAndStartTimeBefore(ETaskStatus status, LocalDateTime time);
-
-    // Pour l'alerte "Tâche terminée" : toutes les tâches en cours (ongoing)
     List<IrrigationTask> findByStatus(ETaskStatus status);
 }

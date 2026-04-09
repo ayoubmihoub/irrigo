@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,9 +20,13 @@ public class TaskService {
     private TaskRepository taskRepository;
 
     /**
-     * Scanne les tâches et génère des messages individuels.
-     * Chaque message disparaît automatiquement après 15 minutes.
+     * Retourne les tâches d'un utilisateur après une date donnée.
+     * Requis pour le Report Service.
      */
+    public List<IrrigationTask> getTasksByUserAfter(String email, LocalDateTime date) {
+        return taskRepository.findByUserEmailAndStartTimeAfter(email, date);
+    }
+
     public List<String> scanAndGetNotifications(String email) {
         List<IrrigationTask> userTasks = taskRepository.findByUserEmail(email);
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
@@ -33,28 +38,27 @@ public class TaskService {
             LocalDateTime taskStart = task.getStartTime().withSecond(0).withNano(0);
             LocalDateTime taskEnd = taskStart.plusMinutes(task.getDuration());
 
-            // 1. Détection : Tâche terminée
-            // Affichée uniquement si la fin a eu lieu il y a MOINS de 15 minutes
-            if (now.isAfter(taskEnd) && now.isBefore(taskEnd.plusMinutes(16))) {
-                messages.add("La tâche '" + task.getName() + "' est terminée.");
+            if (now.isAfter(taskEnd) && now.isBefore(taskEnd.plusDays(7))) {
+                messages.add("La tâche '" + task.getName() + "' est terminée (" + formatEventDate(taskEnd) + ").");
             }
-
-            // 2. Détection : Tâche qui commence
-            // Affichée depuis l'heure de début jusqu'à 15 minutes après
-            else if ((now.isEqual(taskStart) || now.isAfter(taskStart)) && now.isBefore(taskStart.plusMinutes(16))) {
-                messages.add("La tâche '" + task.getName() + "' commence maintenant.");
+            else if ((now.isEqual(taskStart) || now.isAfter(taskStart)) && now.isBefore(taskStart.plusDays(7))) {
+                messages.add("La tâche '" + task.getName() + "' commence maintenant (" + formatEventDate(taskStart) + ").");
             }
-
-            // 3. Détection : Tâche qui commence dans 15 minutes
-            // Affichée uniquement pendant les 15 minutes précédant le début
             else if ((now.isEqual(taskStart.minusMinutes(15)) || now.isAfter(taskStart.minusMinutes(15))) && now.isBefore(taskStart)) {
-                messages.add("La tâche '" + task.getName() + "' va commencer dans 15 minutes.");
+                messages.add("La tâche '" + task.getName() + "' va commencer dans 15 minutes (" + formatEventDate(taskStart) + ").");
             }
         }
         return messages;
     }
 
-    // --- MÉTHODES DE GESTION DES TÂCHES (EXISTANTES) ---
+    private String formatEventDate(LocalDateTime dateTime) {
+        LocalDateTime now = LocalDateTime.now();
+        if (dateTime.toLocalDate().equals(now.toLocalDate())) {
+            return "aujourd'hui à " + dateTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+        } else {
+            return dateTime.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
+        }
+    }
 
     private String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
@@ -99,10 +103,14 @@ public class TaskService {
     public IrrigationTask updateTask(Long id, IrrigationTask details) {
         IrrigationTask task = getTaskById(id);
         task.setName(details.getName());
+        task.setLocation(details.getLocation());
         task.setDuration(details.getDuration());
+        task.setWaterAmount(details.getWaterAmount());
+        task.setDebit(details.getDebit());
         task.setStartTime(details.getStartTime());
+        task.setCrop(details.getCrop());
         task.setStatus(details.getStatus());
-        // ... (autres champs)
+        task.setSurface(details.getSurface()); // Assurez-vous que ce champ existe dans l'entité
         return taskRepository.save(task);
     }
 
@@ -110,9 +118,6 @@ public class TaskService {
         taskRepository.delete(getTaskById(id));
     }
 
-    /**
-     * Mise à jour automatique des statuts en base (toujours utile pour l'historique)
-     */
     @Scheduled(fixedRate = 60000)
     public void updateTaskStatusesAutomatically() {
         LocalDateTime now = LocalDateTime.now();

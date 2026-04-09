@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -15,13 +17,16 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    /**
-     * Endpoint pour le Frontend : récupère les messages d'alerte actifs (valables 15 min).
-     * URL : GET /api/tasks/notifications/scan?email=ayoubhajji.dev@irrigo.tn
-     */
     @GetMapping("/notifications/scan")
     public ResponseEntity<List<String>> scanNotifications(@RequestParam String email) {
         return ResponseEntity.ok(taskService.scanAndGetNotifications(email));
+    }
+
+    @GetMapping("/user/{email}/recent")
+    public ResponseEntity<List<IrrigationTask>> getRecentTasks(@PathVariable String email) {
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        // Appel au service pour récupérer l'historique de 30 jours
+        return ResponseEntity.ok(taskService.getTasksByUserAfter(email, thirtyDaysAgo));
     }
 
     @GetMapping("/history/sum")
@@ -40,7 +45,7 @@ public class TaskController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTaskById(@PathVariable Long id) {
+    public ResponseEntity<IrrigationTask> getTaskById(@PathVariable Long id) {
         return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
@@ -57,6 +62,6 @@ public class TaskController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
-        return ResponseEntity.ok("Supprimé");
+        return ResponseEntity.ok("Tâche supprimée avec succès !");
     }
 }

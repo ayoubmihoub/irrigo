@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -13,7 +14,7 @@ import java.security.Key;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    // Clé identique à celle du user-management-service pour permettre la validation
+    // Clé identique à celle des autres services pour permettre la validation
     private final String jwtSecret = "votre_cle_tres_secrete_pour_irrigo_ezzayra_solutions_2026_mihoub_ayoub";
 
     private Key getSigningKey() {

@@ -15,18 +15,10 @@
         <outputRelativeToContentRoot value="true" />
         <module name="api-gateway" />
         <module name="analytics-service" />
+        <module name="report-service" />
         <module name="eureka-server" />
         <module name="user-management-service" />
         <module name="weather-intelligence-service" />
-      </profile>
-      <profile name="Annotation profile for config-server" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
-        </processorPath>
-        <module name="config-server" />
       </profile>
       <profile name="Annotation profile for task-management-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -34,9 +26,9 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
         </processorPath>
         <module name="task-management-service" />
+        <module name="config-server" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -50,6 +42,7 @@
       <module name="api-gateway" options="-parameters" />
       <module name="config-server" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
+      <module name="report-service" options="-parameters" />
       <module name="task-management-service" options="-parameters" />
       <module name="user-management-service" options="-parameters" />
       <module name="weather-intelligence-service" options="-parameters" />
