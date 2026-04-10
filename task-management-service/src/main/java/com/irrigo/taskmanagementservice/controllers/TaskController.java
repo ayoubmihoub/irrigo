@@ -18,8 +18,13 @@ public class TaskController {
     private TaskService taskService;
 
     @GetMapping("/notifications/scan")
-    public ResponseEntity<List<String>> scanNotifications(@RequestParam String email) {
-        return ResponseEntity.ok(taskService.scanAndGetNotifications(email));
+    public ResponseEntity<List<String>> scanNotifications() {
+        // On ne demande plus l'email en paramètre (@RequestParam).
+        // On le récupère directement depuis le contexte de sécurité (rempli par ton filtre JWT)
+        String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+
+        return ResponseEntity.ok(taskService.scanAndGetNotifications(currentUserEmail));
     }
 
     @GetMapping("/user/{email}/recent")
