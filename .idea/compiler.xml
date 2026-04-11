@@ -13,11 +13,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="bot-service" />
+        <module name="user-management-service" />
         <module name="api-gateway" />
         <module name="analytics-service" />
         <module name="report-service" />
         <module name="eureka-server" />
-        <module name="user-management-service" />
         <module name="weather-intelligence-service" />
       </profile>
       <profile name="Annotation profile for task-management-service" enabled="true">
@@ -40,6 +41,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="analytics-service" options="-parameters" />
       <module name="api-gateway" options="-parameters" />
+      <module name="bot-service" options="-parameters" />
       <module name="config-server" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
       <module name="report-service" options="-parameters" />
