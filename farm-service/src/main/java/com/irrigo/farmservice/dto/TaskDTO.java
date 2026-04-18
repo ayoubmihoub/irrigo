@@ -1,8 +1,6 @@
-package com.irrigo.taskmanagementservice.dto;
-import com.irrigo.taskmanagementservice.dto.ParcelDTO;
-import com.irrigo.taskmanagementservice.dto.SubParcelDTO;
-import lombok.Data;
+package com.irrigo.farmservice.dto;
 
+import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +22,7 @@ public class TaskDTO {
     private LocalDate plantingDate;
     private String aiAdvice;
 
-    // Nouveaux champs structurés
+    // Données géospatiales
     private ParcelDTO parcel;
     private List<SubParcelDTO> subParcels;
 }

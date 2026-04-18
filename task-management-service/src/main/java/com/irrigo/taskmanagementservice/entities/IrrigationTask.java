@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@DynamicInsert // Permet d'ignorer les champs nulls pour utiliser les DEFAULT de la base de données
+@DynamicInsert
 public class IrrigationTask {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,16 +20,16 @@ public class IrrigationTask {
 
     private String name;
     private String location;
-
-    // --- CHANGEMENT : Utilisation de Double/Integer (Wrappers) pour accepter le null ---
     private Double surface;
     private Integer duration;
     private Double waterAmount;
     private Double debit;
-
     private LocalDateTime startTime;
     private String crop;
     private String userEmail;
+
+    @Column(length = 1000)
+    private String aiAdvice; // Stocke le conseil ou la raison d'annulation
 
     @Enumerated(EnumType.STRING)
     private ETaskStatus status;
@@ -39,5 +39,10 @@ public class IrrigationTask {
 
     private LocalDate plantingDate;
 
+    // Stockage JSON pour éviter la complexité Hibernate Spatial
+    @Column(columnDefinition = "TEXT")
+    private String parcelJson;
 
+    @Column(columnDefinition = "TEXT")
+    private String subParcelsJson;
 }

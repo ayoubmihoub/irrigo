@@ -1,9 +1,5 @@
 package com.irrigo.weatherintelligenceservice.services;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.irrigo.taskmanagementservice.dto.TaskDTO;
-import com.irrigo.weatherintelligenceservice.dto.WeatherInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -18,65 +14,48 @@ public class GeminiService {
 
     private final String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
     private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Map<Long, String> getBulkAIAdvice(List<TaskDTO> tasks, Map<Long, WeatherInfo> taskWeathers, Map<Long, Long> plantAges, Map<Long, Double> waterHistories) {
-        StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append("Tu es un expert agronome. Analyse chaque cas et réponds UNIQUEMENT en JSON strict : {\"ID\": \"conseil\"}.\n");
-
-        for (TaskDTO task : tasks) {
-            WeatherInfo w = taskWeathers.get(task.getId());
-            double history = waterHistories.getOrDefault(task.getId(), 0.0);
-
-            promptBuilder.append("- ID: ").append(task.getId())
-                    .append(", Culture: ").append(task.getCrop())
-                    .append(", Sol: ").append(task.getSoilProfile())
-                    .append(", Age: ").append(plantAges.getOrDefault(task.getId(), 0L)).append(" jours")
-                    .append(", Météo locale: ").append(w.getTemperature()).append("°C, Humidité: ").append(w.getHumidity()).append("%")
-                    .append(", Eau déjà versée (7j): ").append(history).append(" m3\n");
-        }
-
-        return callGeminiInternal(promptBuilder.toString());
-    }
-
-    public String generateExpertAdvice(String crop, String soil, long age, WeatherInfo weather, double history) {
+    public String generateDecisionAdvice(String crop, String soil, int currentMoisture) {
+        // On inclut currentMoisture dans le formatage final pour la justification
         String prompt = String.format(
-                "Expert irrigation. Analyse le bilan hydrique : Culture %s (%d j), Sol %s, Météo %.1f°C, Humidité %d%%. " +
-                        "Historique 7 derniers jours : %.1f m3 d'eau déjà versés. " +
-                        "Donne un conseil sur l'humidité résiduelle et l'ajustement nécessaire en JSON : {\"0\": \"conseil\"}",
-                crop, age, soil, weather.getTemperature(), weather.getHumidity(), history
+                "Tu es un agronome expert en IoT. Analyse ces données en temps réel :\n" +
+                        "- Culture : %s\n" +
+                        "- Type de sol : %s\n" +
+                        "- Humidité actuelle du sol (Capteur ESP32) : %d%%\n\n" +
+                        "Consigne :\n" +
+                        "1. Réponds par 'OUI, vous pouvez irriguer' ou 'NON, attendez encore'.\n" +
+                        "2. Justifie brièvement (2 phrases max) en expliquant si le taux d'humidité de %d%% " +
+                        "est suffisant ou critique pour une culture de type %s dans un sol %s.",
+                crop, soil, currentMoisture, currentMoisture, crop, soil
         );
 
-        Map<Long, String> result = callGeminiInternal(prompt);
-        return result.getOrDefault(0L, "Conseil indisponible");
+        // ✅ On passe maintenant l'humidité à la méthode interne
+        return callGeminiInternal(prompt, currentMoisture);
     }
 
-    private Map<Long, String> callGeminiInternal(String promptText) {
+    // ✅ La méthode accepte maintenant 'currentMoisture' pour pouvoir l'utiliser dans le catch
+    private String callGeminiInternal(String promptText, int currentMoisture) {
         Map<String, Object> textPart = Map.of("text", promptText);
-        Map<String, Object> contentItem = Map.of("parts", List.of(textPart));
-        Map<String, Object> requestBody = Map.of("contents", List.of(contentItem));
+        Map<String, Object> parts = Map.of("parts", List.of(textPart));
+        Map<String, Object> content = Map.of("contents", List.of(parts));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-goog-api-key", apiKey);
 
         try {
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(content, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, entity, Map.class);
 
             List candidates = (List) response.getBody().get("candidates");
-            if (candidates != null && !candidates.isEmpty()) {
-                Map candidate = (Map) candidates.get(0);
-                Map content = (Map) candidate.get("content");
-                List resParts = (List) content.get("parts");
-                String rawText = (String) ((Map) resParts.get(0)).get("text");
+            Map candidate = (Map) candidates.get(0);
+            Map contentRes = (Map) candidate.get("content");
+            List partsRes = (List) contentRes.get("parts");
 
-                String jsonContent = rawText.replaceAll("```json|```", "").trim();
-                return objectMapper.readValue(jsonContent, new TypeReference<Map<Long, String>>() {});
-            }
+            return (String) ((Map) partsRes.get(0)).get("text");
         } catch (Exception e) {
-            System.err.println("Erreur technique Gemini : " + e.getMessage());
+            // ✅ Maintenant cette ligne fonctionne car currentMoisture est dans la portée (scope)
+            return "Conseil indisponible. Basez-vous sur l'humidité actuelle de " + currentMoisture + "%.";
         }
-        return Collections.emptyMap();
     }
 }

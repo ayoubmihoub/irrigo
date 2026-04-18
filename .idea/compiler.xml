@@ -21,7 +21,7 @@
         <module name="eureka-server" />
         <module name="weather-intelligence-service" />
       </profile>
-      <profile name="Annotation profile for task-management-service" enabled="true">
+      <profile name="Annotation profile for farm-task-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -29,6 +29,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
         </processorPath>
         <module name="task-management-service" />
+        <module name="farm-service" />
         <module name="config-server" />
       </profile>
     </annotationProcessing>
@@ -44,6 +45,7 @@
       <module name="bot-service" options="-parameters" />
       <module name="config-server" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
+      <module name="farm-service" options="-parameters" />
       <module name="report-service" options="-parameters" />
       <module name="task-management-service" options="-parameters" />
       <module name="user-management-service" options="-parameters" />
