@@ -24,16 +24,11 @@ public class FarmService {
     private TaskServiceClient taskServiceClient;
 
     @Autowired
-    private ObjectMapper objectMapper; // Indispensable pour traiter le GeoJSON
+    private ObjectMapper objectMapper;
 
-    /**
-     * Récupère l'email de l'utilisateur connecté via le SecurityContext.
-     */
     private String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
-
-    // --- CRUD Classique ---
 
     public List<Farm> getMyFarms() {
         return farmRepository.findByUserEmail(getCurrentUserEmail());
@@ -44,61 +39,45 @@ public class FarmService {
         return farmRepository.save(farm);
     }
 
-    public Farm updateFarm(Long id, Farm details) {
-        Farm farm = farmRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Champ non trouvé"));
-
-        farm.setName(details.getName());
-        farm.setCrop(details.getCrop());
-        farm.setLocation(details.getLocation());
-        farm.setSurface(details.getSurface());
-        farm.setSoilProfile(details.getSoilProfile());
-        farm.setImage(details.getImage());
-        farm.setParcelJson(details.getParcelJson());
-
-        return farmRepository.save(farm);
-    }
-
     public void deleteFarm(Long id) {
         farmRepository.deleteById(id);
     }
 
     /**
-     * Méthode d'irrigation : Transforme un champ en une tâche planifiée dans le Task Service.
-     * Récupère les données géospatiales (Polygone) pour une précision maximale.
+     * Déclenche une irrigation immédiate (Statut: ongoing).
      */
     public void irrigateFarm(Long farmId, Double waterAmount, Integer duration, Double debit) {
         Farm farm = farmRepository.findById(farmId)
-                .orElseThrow(() -> new RuntimeException("Champ non trouvé avec l'ID : " + farmId));
+                .orElseThrow(() -> new RuntimeException("Champ non trouvé"));
 
-        // 1. Construction du DTO pour le Task-Management-Service
+        // Création du DTO pour le microservice Task
         TaskDTO taskDto = new TaskDTO();
-        taskDto.setName("Irrigation automatique : " + farm.getName());
+        taskDto.setName("Irrigation : " + farm.getName());
         taskDto.setLocation(farm.getLocation());
         taskDto.setCrop(farm.getCrop());
         taskDto.setSurface(farm.getSurface());
-        taskDto.setSoilProfile(farm.getSoilProfile() != null ? farm.getSoilProfile().name() : null);
         taskDto.setUserEmail(farm.getUserEmail());
 
-        // 2. Intégration des paramètres de session d'arrosage
+        // Paramètres de l'action
         taskDto.setWaterAmount(waterAmount);
         taskDto.setDuration(duration);
         taskDto.setDebit(debit);
-        taskDto.setStartTime(LocalDateTime.now().plusMinutes(5)); // Planifié dans 5 min par défaut
-        taskDto.setStatus("planned");
 
-        // 3. Désérialisation du GeoJSON pour l'envoyer au Task Service
+        // Logique temps réel : Heure actuelle et statut en cours
+        taskDto.setStartTime(LocalDateTime.now());
+        taskDto.setStatus("ongoing");
+
+        // Transfert des données géospatiales
         try {
             if (farm.getParcelJson() != null && !farm.getParcelJson().isEmpty()) {
                 ParcelDTO parcel = objectMapper.readValue(farm.getParcelJson(), ParcelDTO.class);
                 taskDto.setParcel(parcel);
             }
         } catch (JsonProcessingException e) {
-            // En cas d'erreur, on envoie une tâche sans polygone pour ne pas bloquer l'irrigation
-            System.err.println("Erreur lors de la lecture des données GeoJSON de la parcelle : " + e.getMessage());
+            System.err.println("Erreur GeoJSON lors de l'envoi vers TaskService");
         }
 
-        // 4. Appel au microservice Task via Feign
+        // Appel Feign vers Task-Management-Service
         taskServiceClient.createIrrigationTask(taskDto);
     }
 }
