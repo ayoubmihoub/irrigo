@@ -19,7 +19,7 @@ public class FarmController {
     /**
      * Récupère tous les champs de l'utilisateur connecté.
      */
-    @GetMapping
+    @GetMapping("/all") // L'URL devient /api/farms/all
     public List<Farm> getAll() {
         return farmService.getMyFarms();
     }
