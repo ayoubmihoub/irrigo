@@ -23,7 +23,14 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // On sécurise tous les endpoints liés aux champs agricoles
+                        // --- EXCEPTIONS POUR L'ESP32 ET L'IA ---
+                        // On autorise l'accès sans token uniquement pour ces routes spécifiques
+                        .requestMatchers("/api/farms/*/moisture").permitAll()
+                        .requestMatchers("/api/farms/*/irrigation-status").permitAll()
+                        .requestMatchers("/api/farms/*/moisture-value").permitAll()
+
+                        // --- SÉCURITÉ POUR LE RESTE ---
+                        // Toutes les autres actions (créer, supprimer, lister les champs) exigent un Token
                         .requestMatchers("/api/farms/**").authenticated()
                         .anyRequest().authenticated()
                 );

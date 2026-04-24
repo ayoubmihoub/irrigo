@@ -17,47 +17,63 @@ public class FarmController {
     private FarmService farmService;
 
     /**
-     * Récupère tous les champs de l'utilisateur connecté.
+     * Endpoint pour l'IA : GET /api/farms/{id}/moisture-value
      */
-    @GetMapping("/all") // L'URL devient /api/farms/all
+    @GetMapping("/{id}/moisture-value")
+    public ResponseEntity<Integer> getMoistureValue(@PathVariable Long id) {
+        return ResponseEntity.ok(farmService.getFarmMoisture(id));
+    }
+
+    /**
+     * Endpoint pour l'ESP32 : PUT /api/farms/{id}/moisture
+     */
+    @PutMapping("/{id}/moisture")
+    public ResponseEntity<Void> updateMoisture(@PathVariable Long id, @RequestBody Integer moisture) {
+        farmService.updateFarmMoisture(id, moisture);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Endpoint pour l'ESP32 : GET /api/farms/{id}/irrigation-status
+     * MODIFICATION : On renvoie un String ("true" ou "false") pour correspondre
+     * exactement à la lecture 'http.getString()' de l'Arduino.
+     */
+    @GetMapping("/{id}/irrigation-status")
+    public String getStatus(@PathVariable Long id) {
+        boolean active = farmService.isIrrigationActive(id);
+        return String.valueOf(active); // Renvoie "true" ou "false" sans guillemets JSON
+    }
+
+    @GetMapping("/all")
     public List<Farm> getAll() {
         return farmService.getMyFarms();
     }
 
-    /**
-     * Crée un nouveau champ.
-     */
     @PostMapping("/create")
     public Farm create(@RequestBody Farm farm) {
         return farmService.saveFarm(farm);
     }
 
-    /**
-     * Met à jour les informations d'un champ existant.
-     */
     @PutMapping("/{id}")
     public ResponseEntity<Farm> update(@PathVariable Long id, @RequestBody Farm details) {
         return ResponseEntity.ok(farmService.updateFarm(id, details));
     }
 
     /**
-     * Endpoint pour lancer une irrigation sur un champ existant.
-     * Les données du champ sont fusionnées avec les paramètres d'arrosage saisis.
+     * Déclenche l'irrigation.
+     * Comme ton FarmService fait déjà 'farm.setIrrigationActive(true)',
+     * l'ESP32 verra le changement au prochain appel de getStatus().
      */
     @PostMapping("/{id}/irrigate")
     public ResponseEntity<String> irrigate(@PathVariable Long id, @RequestBody Map<String, Object> params) {
-        // Extraction sécurisée des paramètres depuis la Map
         Double water = Double.valueOf(params.get("waterAmount").toString());
         Integer duration = Integer.valueOf(params.get("duration").toString());
         Double debit = Double.valueOf(params.get("debit").toString());
 
         farmService.irrigateFarm(id, water, duration, debit);
-        return ResponseEntity.ok("Demande d'irrigation transmise au Task Service !");
+        return ResponseEntity.ok("Irrigation lancée ! L'ESP32 va s'activer d'ici quelques secondes.");
     }
 
-    /**
-     * Supprime un champ.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         farmService.deleteFarm(id);

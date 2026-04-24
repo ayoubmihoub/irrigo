@@ -3,6 +3,7 @@ package com.irrigo.weatherintelligenceservice.services;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException; // Ajouté pour capturer les erreurs HTTP
 import org.springframework.web.client.RestTemplate;
 import java.util.*;
 
@@ -12,11 +13,11 @@ public class GeminiService {
     @Value("${api.gemini.key}")
     private String apiKey;
 
+    // Dans GeminiService.java
     private final String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String generateDecisionAdvice(String crop, String soil, int currentMoisture) {
-        // On inclut currentMoisture dans le formatage final pour la justification
         String prompt = String.format(
                 "Tu es un agronome expert en IoT. Analyse ces données en temps réel :\n" +
                         "- Culture : %s\n" +
@@ -29,11 +30,9 @@ public class GeminiService {
                 crop, soil, currentMoisture, currentMoisture, crop, soil
         );
 
-        // ✅ On passe maintenant l'humidité à la méthode interne
         return callGeminiInternal(prompt, currentMoisture);
     }
 
-    // ✅ La méthode accepte maintenant 'currentMoisture' pour pouvoir l'utiliser dans le catch
     private String callGeminiInternal(String promptText, int currentMoisture) {
         Map<String, Object> textPart = Map.of("text", promptText);
         Map<String, Object> parts = Map.of("parts", List.of(textPart));
@@ -45,17 +44,33 @@ public class GeminiService {
 
         try {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(content, headers);
+
+            System.out.println("--- ENVOI À GEMINI ---");
+            System.out.println("API Key utilisée (tronquée): " + (apiKey != null ? apiKey.substring(0, 5) + "..." : "NULL"));
+
             ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, entity, Map.class);
 
             List candidates = (List) response.getBody().get("candidates");
+            if (candidates == null || candidates.isEmpty()) {
+                System.err.println("❌ Gemini n'a renvoyé aucun candidat (bloqué par filtres de sécurité ?)");
+                return "Conseil indisponible. Basez-vous sur l'humidité de " + currentMoisture + "%.";
+            }
+
             Map candidate = (Map) candidates.get(0);
             Map contentRes = (Map) candidate.get("content");
             List partsRes = (List) contentRes.get("parts");
 
             return (String) ((Map) partsRes.get(0)).get("text");
+
+        } catch (HttpClientErrorException e) {
+            // Capture les erreurs comme 401 (clé API) ou 429 (quota)
+            System.err.println("❌ ERREUR HTTP API GEMINI (" + e.getStatusCode() + ") : " + e.getResponseBodyAsString());
+            return "Erreur API Google. Basez-vous sur l'humidité de " + currentMoisture + "%.";
         } catch (Exception e) {
-            // ✅ Maintenant cette ligne fonctionne car currentMoisture est dans la portée (scope)
-            return "Conseil indisponible. Basez-vous sur l'humidité actuelle de " + currentMoisture + "%.";
+            // Capture toutes les autres erreurs (parsing JSON, timeout, etc.)
+            System.err.println("❌ ERREUR CRITIQUE DANS GEMINI_SERVICE :");
+            e.printStackTrace();
+            return "Conseil indisponible. Basez-vous sur l'humidité de " + currentMoisture + "%.";
         }
     }
 }
