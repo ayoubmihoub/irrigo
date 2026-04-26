@@ -126,9 +126,13 @@ public class FarmService {
     /**
      * Vérifie si l'irrigation est active pour l'ESP32.
      */
-    public boolean isIrrigationActive(Long id) {
+    public Boolean isIrrigationActive(Long id) {
         return farmRepository.findById(id)
-                .map(Farm::isIrrigationActive)
+                .map(Farm::getIrrigationActive)
                 .orElse(false);
+    }
+    public Farm getFarmById(Long id) {
+        return farmRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ferme non trouvée avec l'ID : " + id));
     }
 }

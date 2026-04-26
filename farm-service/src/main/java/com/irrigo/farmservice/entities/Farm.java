@@ -33,7 +33,8 @@ public class Farm {
      * Flag utilisé par l'ESP32 pour savoir s'il doit allumer la LED.
      * C'est ce champ qui génère la méthode setIrrigationActive().
      */
-    private boolean irrigationActive = false;
+    @Column(name = "irrigation_active", insertable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private Boolean irrigationActive = false;
 
     @Lob
     @Column(columnDefinition = "LONGTEXT")

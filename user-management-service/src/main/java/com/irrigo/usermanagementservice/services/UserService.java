@@ -72,4 +72,26 @@ public class UserService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+    // Dans UserService.java
+    public User updateRole(Long userId, String newRoleName) {
+        // 1. Trouver l'utilisateur
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Erreur : Utilisateur non trouvé"));
+
+        // 2. Convertir le nom (ex: "admin" ou "user") en ERole
+        ERole eRole;
+        if (newRoleName.equalsIgnoreCase("admin")) {
+            eRole = ERole.ROLE_ADMIN;
+        } else {
+            eRole = ERole.ROLE_USER;
+        }
+
+        // 3. Récupérer le rôle en base
+        Role role = roleRepository.findByName(eRole)
+                .orElseThrow(() -> new RuntimeException("Erreur : Rôle " + eRole + " non trouvé en base."));
+
+        // 4. Mettre à jour et sauvegarder
+        user.setRole(role);
+        return userRepository.save(user);
+    }
 }

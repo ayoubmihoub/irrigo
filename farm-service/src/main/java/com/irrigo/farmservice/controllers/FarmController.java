@@ -73,6 +73,10 @@ public class FarmController {
         farmService.irrigateFarm(id, water, duration, debit);
         return ResponseEntity.ok("Irrigation lancée ! L'ESP32 va s'activer d'ici quelques secondes.");
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<Farm> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(farmService.getFarmById(id));
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {

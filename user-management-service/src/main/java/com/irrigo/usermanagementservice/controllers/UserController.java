@@ -137,4 +137,15 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUsersForAdmin() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
+
+    @PutMapping("/admin/users/{id}/role")
+    public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String newRole = request.get("role"); // Le frontend doit envoyer {"role": "admin"} ou {"role": "user"}
+            User updatedUser = userService.updateRole(id, newRole);
+            return ResponseEntity.ok("Rôle mis à jour avec succès pour " + updatedUser.getName());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 }

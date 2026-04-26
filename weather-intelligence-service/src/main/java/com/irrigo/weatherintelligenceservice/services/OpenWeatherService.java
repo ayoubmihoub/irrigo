@@ -4,8 +4,8 @@ import com.irrigo.weatherintelligenceservice.dto.WeatherInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import java.util.Map;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class OpenWeatherService {
@@ -13,41 +13,54 @@ public class OpenWeatherService {
     @Value("${api.openweather.key}")
     private String apiKey;
 
-    private final String apiUrl = "https://api.openweathermap.org/data/2.5/weather";
+    private final String forecastUrl = "https://api.openweathermap.org/data/2.5/forecast";
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public WeatherInfo getWeather(String location) {
-        String url;
-        // Vérifie si la location contient une virgule (format lat, lon)
-        if (location.contains(",")) {
-            String[] coords = location.split(",");
-            String lat = coords[0].trim();
-            String lon = coords[1].trim();
-            url = String.format("%s?lat=%s&lon=%s&appid=%s&units=metric&lang=fr", apiUrl, lat, lon, apiKey);
-        } else {
-            url = String.format("%s?q=%s&appid=%s&units=metric&lang=fr", apiUrl, location, apiKey);
-        }
+    public WeatherInfo getFullWeather(double lat, double lon) {
+        String url = String.format("%s?lat=%s&lon=%s&appid=%s&units=metric&lang=fr", forecastUrl, lat, lon, apiKey);
 
         try {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            WeatherInfo info = new WeatherInfo();
+            List<Map<String, Object>> list = (List<Map<String, Object>>) response.get("list");
+            Map<String, Object> cityData = (Map<String, Object>) response.get("city");
 
-            // OpenWeather retourne le nom du lieu trouvé dans le champ "name"
-            info.setCityName(response.get("name").toString());
+            // 1. Météo Actuelle
+            Map<String, Object> now = list.get(0);
+            Map<String, Object> mainNow = (Map<String, Object>) now.get("main");
+            List<Map<String, Object>> weatherDetails = (List<Map<String, Object>>) now.get("weather");
 
-            Map<String, Object> main = (Map<String, Object>) response.get("main");
-            info.setTemperature(Double.parseDouble(main.get("temp").toString()));
-            info.setHumidity(Integer.parseInt(main.get("humidity").toString()));
+            WeatherInfo.CurrentWeather current = WeatherInfo.CurrentWeather.builder()
+                    .temperature(Double.parseDouble(mainNow.get("temp").toString()))
+                    .humidity(Integer.parseInt(mainNow.get("humidity").toString()))
+                    .description(weatherDetails.get(0).get("description").toString())
+                    // Conversion de la probabilité en %
+                    .rainProbability((int) (Double.parseDouble(now.get("pop").toString()) * 100))
+                    .build();
 
-            List<Map<String, Object>> weatherList = (List<Map<String, Object>>) response.get("weather");
-            if (!weatherList.isEmpty()) {
-                info.setDescription(weatherList.get(0).get("description").toString());
-            }
+            // 2. Prévisions sur 3 jours (filtrage sur 12:00:00)
+            List<WeatherInfo.ForecastDay> forecast = list.stream()
+                    .filter(item -> item.get("dt_txt").toString().contains("12:00:00"))
+                    .skip(1)
+                    .limit(3)
+                    .map(item -> {
+                        Map<String, Object> m = (Map<String, Object>) item.get("main");
+                        return WeatherInfo.ForecastDay.builder()
+                                .date(item.get("dt_txt").toString().split(" ")[0])
+                                .tempMin(Double.parseDouble(m.get("temp_min").toString()))
+                                .tempMax(Double.parseDouble(m.get("temp_max").toString()))
+                                .description(((List<Map<String, Object>>) item.get("weather")).get(0).get("description").toString())
+                                // Conversion de la probabilité en %
+                                .rainProbability((int) (Double.parseDouble(item.get("pop").toString()) * 100))
+                                .build();
+                    })
+                    .collect(Collectors.toList());
 
-            Map<String, Object> clouds = (Map<String, Object>) response.get("clouds");
-            info.setRainProbability(Double.parseDouble(clouds.get("all").toString()) / 100.0);
+            return WeatherInfo.builder()
+                    .cityName(cityData.get("name").toString())
+                    .current(current)
+                    .forecast(forecast)
+                    .build();
 
-            return info;
         } catch (Exception e) {
             throw new RuntimeException("Erreur OpenWeather : " + e.getMessage());
         }
