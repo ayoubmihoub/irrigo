@@ -94,4 +94,25 @@ public class UserService {
         user.setRole(role);
         return userRepository.save(user);
     }
+    public User disableUser(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Utilisateur non trouvé"));
+
+        user.setEnabled(false);
+
+        return userRepository.save(user);
+    }
+
+    public User enableUser(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Utilisateur non trouvé"));
+
+        user.setEnabled(true);
+
+        return userRepository.save(user);
+    }
 }

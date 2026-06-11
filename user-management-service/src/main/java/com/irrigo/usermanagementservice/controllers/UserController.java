@@ -40,6 +40,10 @@ public class UserController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : Utilisateur non trouvé");
         }
+        if (!user.getEnabled()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Compte désactivé par l'administrateur");
+        }
 
         if (encoder.matches(loginRequest.getPassword(), user.getPassword())) {
             String role = user.getRole().getName().toString();
@@ -147,5 +151,27 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
+    @PutMapping("/admin/users/{id}/disable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> disableUser(@PathVariable Long id) {
+
+        userService.disableUser(id);
+
+        return ResponseEntity.ok(
+                Map.of("message",
+                        "Utilisateur désactivé avec succès")
+        );
+    }
+    @PutMapping("/admin/users/{id}/enable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enableUser(@PathVariable Long id) {
+
+        userService.enableUser(id);
+
+        return ResponseEntity.ok(
+                Map.of("message",
+                        "Utilisateur réactivé avec succès")
+        );
     }
 }

@@ -23,114 +23,281 @@ public class ReportService {
     private TaskServiceClient taskServiceClient;
 
     public byte[] generatePdfReport(String email) {
-        // 1. Récupération des données
-        List<IrrigationTaskDTO> tasks = taskServiceClient.getRecentTasks(email);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-        // 2. Calculs des Statistiques
+        List<IrrigationTaskDTO> tasks =
+                taskServiceClient.getRecentTasks(email);
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
         double totalWater = tasks.stream()
-                .mapToDouble(t -> t.getWaterAmount() != null ? t.getWaterAmount() : 0.0).sum();
+                .mapToDouble(t -> t.getWaterAmount() != null
+                        ? t.getWaterAmount()
+                        : 0.0)
+                .sum();
 
         double totalSurface = tasks.stream()
-                .mapToDouble(t -> t.getSurface() != null ? t.getSurface() : 0.0).sum();
+                .mapToDouble(t -> t.getSurface() != null
+                        ? t.getSurface()
+                        : 0.0)
+                .sum();
 
         double debitMoyen = tasks.stream()
-                .mapToDouble(t -> t.getDebit() != null ? t.getDebit() : 0.0).average().orElse(0.0);
+                .mapToDouble(t -> t.getDebit() != null
+                        ? t.getDebit()
+                        : 0.0)
+                .average()
+                .orElse(0.0);
 
         Map<String, Double> statsParCulture = tasks.stream()
                 .filter(t -> t.getCrop() != null)
                 .collect(Collectors.groupingBy(
                         IrrigationTaskDTO::getCrop,
-                        Collectors.summingDouble(t -> t.getWaterAmount() != null ? t.getWaterAmount() : 0.0)
+                        Collectors.summingDouble(
+                                t -> t.getWaterAmount() != null
+                                        ? t.getWaterAmount()
+                                        : 0.0
+                        )
                 ));
 
+        Map<String, List<IrrigationTaskDTO>> tasksParCulture =
+                tasks.stream()
+                        .collect(Collectors.groupingBy(
+                                t -> t.getCrop() != null
+                                        ? t.getCrop()
+                                        : "Non définie"
+                        ));
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4.rotate()); // Mode paysage
+        Document document = new Document(PageSize.A4.rotate());
 
         try {
+
             PdfWriter.getInstance(document, out);
             document.open();
 
-            // Polices
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+            Font titleFont =
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
 
-            // --- SECTION 1 : TITRE ---
-            Paragraph title = new Paragraph("Rapport d'activité Irrigo", titleFont);
+            Font headerFont =
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+
+            Font tableHeaderFont =
+                    FontFactory.getFont(
+                            FontFactory.HELVETICA_BOLD,
+                            10,
+                            Color.WHITE
+                    );
+
+            Font normalFont =
+                    FontFactory.getFont(FontFactory.HELVETICA, 10);
+
+            Paragraph title =
+                    new Paragraph("Rapport d'activité Irrigo", titleFont);
+
             title.setAlignment(Element.ALIGN_CENTER);
             title.setSpacingAfter(20);
+
             document.add(title);
 
-            // --- SECTION 2 : INDICATEURS CLÉS (KPIs) ---
-            document.add(new Paragraph("Destinataire : " + email, headerFont));
-            document.add(new Paragraph("Total des tâches effectuées : " + tasks.size(), normalFont));
-            document.add(new Paragraph("Surface totale irriguée : " + String.format("%.2f m²", totalSurface), normalFont));
-            document.add(new Paragraph("Consommation totale d'eau : " + String.format("%.2f L", totalWater), normalFont));
-            document.add(new Paragraph("Débit moyen global : " + String.format("%.2f L/min", debitMoyen), normalFont));
+            document.add(new Paragraph(
+                    "Destinataire : " + email,
+                    headerFont));
+
+            document.add(new Paragraph(
+                    "Total des tâches effectuées : " + tasks.size(),
+                    normalFont));
+
+            document.add(new Paragraph(
+                    "Surface totale irriguée : "
+                            + String.format("%.2f m²", totalSurface),
+                    normalFont));
+
+            document.add(new Paragraph(
+                    "Consommation totale d'eau : "
+                            + String.format("%.2f L", totalWater),
+                    normalFont));
+
+            document.add(new Paragraph(
+                    "Débit moyen global : "
+                            + String.format("%.2f L/min", debitMoyen),
+                    normalFont));
+
             document.add(new Paragraph("\n"));
 
-            // --- SECTION 3 : RÉSUMÉ PAR CULTURE (Celui que tu voulais garder !) ---
-            document.add(new Paragraph("Résumé de la consommation d'eau par culture (L) :", headerFont));
+            document.add(new Paragraph(
+                    "Résumé de la consommation d'eau par culture (L) :",
+                    headerFont));
+
             if (statsParCulture.isEmpty()) {
-                document.add(new Paragraph("- Aucune donnée de culture disponible", normalFont));
+
+                document.add(new Paragraph(
+                        "- Aucune donnée de culture disponible",
+                        normalFont));
+
             } else {
-                for (Map.Entry<String, Double> entry : statsParCulture.entrySet()) {
-                    document.add(new Paragraph("- " + entry.getKey() + " : " + String.format("%.2f", entry.getValue()) + " L", normalFont));
+
+                for (Map.Entry<String, Double> entry :
+                        statsParCulture.entrySet()) {
+
+                    document.add(new Paragraph(
+                            "- "
+                                    + entry.getKey()
+                                    + " : "
+                                    + String.format("%.2f",
+                                    entry.getValue())
+                                    + " L",
+                            normalFont));
                 }
             }
+
             document.add(new Paragraph("\n"));
 
-            // --- SECTION 4 : TABLEAU DÉTAILLÉ ---
-            document.add(new Paragraph("Détail complet des activités :", headerFont));
+            document.add(new Paragraph(
+                    "Détail complet des activités par culture :",
+                    headerFont));
+
             document.add(new Paragraph("\n"));
 
-            PdfPTable table = new PdfPTable(7); // 7 colonnes
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{2.5f, 2.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f});
+            for (Map.Entry<String, List<IrrigationTaskDTO>> entry :
+                    tasksParCulture.entrySet()) {
 
-            addTableHeader(table, tableHeaderFont);
+                String culture = entry.getKey();
+                List<IrrigationTaskDTO> cultureTasks =
+                        entry.getValue();
 
-            for (IrrigationTaskDTO task : tasks) {
-                table.addCell(new PdfPCell(new Phrase(task.getName() != null ? task.getName() : "-", normalFont)));
+                Paragraph cultureTitle =
+                        new Paragraph(
+                                "Culture : " + culture,
+                                headerFont);
 
-                // Date formatée
-                String dateStr = task.getStartTime() != null ? task.getStartTime().format(formatter) : "-";
-                table.addCell(new PdfPCell(new Phrase(dateStr, normalFont)));
+                cultureTitle.setSpacingBefore(10);
+                cultureTitle.setSpacingAfter(10);
 
-                table.addCell(new PdfPCell(new Phrase(task.getCrop() != null ? task.getCrop() : "-", normalFont)));
-                table.addCell(new PdfPCell(new Phrase(task.getStatus() != null ? task.getStatus() : "-", normalFont)));
+                document.add(cultureTitle);
 
-                // Eau en L
-                String water = task.getWaterAmount() != null ? String.format("%.2f L", task.getWaterAmount()) : "0 L";
-                table.addCell(new PdfPCell(new Phrase(water, normalFont)));
+                PdfPTable table = new PdfPTable(7);
 
-                // Débit
-                String debit = task.getDebit() != null ? String.format("%.2f L/min", task.getDebit()) : "0 L/min";
-                table.addCell(new PdfPCell(new Phrase(debit, normalFont)));
+                table.setWidthPercentage(100);
 
-                // Surface
-                String surface = task.getSurface() != null ? String.format("%.2f m²", task.getSurface()) : "0 m²";
-                table.addCell(new PdfPCell(new Phrase(surface, normalFont)));
+                table.setWidths(
+                        new float[]{
+                                2.5f,
+                                2.5f,
+                                1.5f,
+                                1.5f,
+                                1.5f,
+                                1.5f,
+                                1.5f
+                        });
+
+                addTableHeader(table, tableHeaderFont);
+
+                for (IrrigationTaskDTO task : cultureTasks) {
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(
+                                    task.getName() != null
+                                            ? task.getName()
+                                            : "-",
+                                    normalFont)));
+
+                    String dateStr =
+                            task.getStartTime() != null
+                                    ? task.getStartTime()
+                                    .format(formatter)
+                                    : "-";
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(dateStr, normalFont)));
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(
+                                    task.getCrop() != null
+                                            ? task.getCrop()
+                                            : "-",
+                                    normalFont)));
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(
+                                    task.getStatus() != null
+                                            ? task.getStatus()
+                                            : "-",
+                                    normalFont)));
+
+                    String water =
+                            task.getWaterAmount() != null
+                                    ? String.format(
+                                    "%.2f L",
+                                    task.getWaterAmount())
+                                    : "0 L";
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(water, normalFont)));
+
+                    String debit =
+                            task.getDebit() != null
+                                    ? String.format(
+                                    "%.2f L/min",
+                                    task.getDebit())
+                                    : "0 L/min";
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(debit, normalFont)));
+
+                    String surface =
+                            task.getSurface() != null
+                                    ? String.format(
+                                    "%.2f m²",
+                                    task.getSurface())
+                                    : "0 m²";
+
+                    table.addCell(new PdfPCell(
+                            new Phrase(surface, normalFont)));
+                }
+
+                document.add(table);
+                document.add(new Paragraph("\n"));
             }
 
-            document.add(table);
             document.close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return out.toByteArray();
     }
 
-    private void addTableHeader(PdfPTable table, Font font) {
-        String[] headers = {"Nom de la tâche", "Date", "Culture", "Statut", "Eau (L)", "Débit", "Surface"};
+    private void addTableHeader(
+            PdfPTable table,
+            Font font) {
+
+        String[] headers = {
+                "Nom de la Farm",
+                "Date",
+                "Culture",
+                "Statut",
+                "Eau (L)",
+                "Débit",
+                "Surface"
+        };
+
         for (String columnTitle : headers) {
+
             PdfPCell header = new PdfPCell();
-            header.setBackgroundColor(new Color(46, 139, 87)); // Vert forêt
+
+            header.setBackgroundColor(
+                    new Color(46, 139, 87));
+
             header.setPadding(5);
-            header.setPhrase(new Phrase(columnTitle, font));
-            header.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+            header.setPhrase(
+                    new Phrase(columnTitle, font));
+
+            header.setHorizontalAlignment(
+                    Element.ALIGN_CENTER);
+
             table.addCell(header);
         }
     }
